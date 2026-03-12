@@ -58,6 +58,18 @@ def main():
     print("Confusion matrix (threshold=0.5):")
     print(cm)
 
+    out_dir = root / "reports" / "metrics"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    pred_df = pd.DataFrame({
+        "y_true": y_test,
+        "y_score": y_prob
+    })
+
+    pred_df.to_csv(out_dir / "logistic_random_split_predictions.csv", index=False)
+    
+    print("Saved predictions to:", out_dir / "logistic_random_split_predictions.csv")
+
 
 if __name__ == "__main__":
     main()

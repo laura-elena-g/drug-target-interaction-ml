@@ -1,3 +1,4 @@
+import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -71,6 +72,22 @@ def main():
     print("Confusion matrix:")
     print(cm)
 
+    out_dir = root / "reports" / "metrics"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    pred_df = pd.DataFrame({
+        "y_true": y_test,
+        "y_score": y_prob
+    })
+
+    pred_df.to_csv(out_dir / "xgboost_drug_split_predictions.csv", index=False)
+    print("Saved predictions to:", out_dir / "xgboost_drug_split_predictions.csv")
+
+    model_dir = root / "reports" / "models"
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    joblib.dump(model, model_dir / "xgboost_drug_split_model.pkl")
+    print("Saved model to:", model_dir / "xgboost_drug_split_model.pkl")
 
 if __name__ == "__main__":
     main()
