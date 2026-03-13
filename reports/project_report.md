@@ -1,93 +1,86 @@
-## 1. Problem formulation
+## 1. Formularea problemei
 
-Drug–target interaction (DTI) prediction is an important task in computational drug discovery because it helps prioritize which compounds are more likely to interact with which biological targets before costly experimental validation. In practical virtual screening workflows, the goal is not only to classify interactions correctly in a general sense, but also to rank candidate compound–target pairs so that truly active pairs appear near the top of the list.
+Predicția interacțiunilor dintre medicamente și ținte biologice (DTI) este folosită în descoperirea computațională de medicamente pentru a restrânge mai eficient lista de compuși care merită testați experimental. În practică, într-un scenariu de virtual screening, nu contează doar dacă modelul etichetează corect o interacțiune ca activă sau inactivă. Contează și cum ordonează perechile compus–țintă, astfel încât cele cu șanse reale de activitate să ajungă cât mai sus în clasament.
 
-In this project, the DTI problem was formulated as a binary classification task based on the KIBA dataset. Each sample corresponds to a drug–target pair described by a compound structure, a protein sequence, and an affinity score. To obtain binary labels, pairs with affinity values greater than or equal to 12 were defined as active, while pairs with affinity values below 12 were defined as inactive. This threshold transforms a continuous binding-related signal into a classification setting suitable for classical machine learning baselines.
+În acest proiect, problema DTI a fost tratată ca o sarcină de clasificare binară, folosind setul de date KIBA. Fiecare exemplu descrie o pereche medicament–țintă prin structura compusului, secvența proteinei și un scor de afinitate. Pentru a obține etichete binare, perechile cu afinitate mai mare sau egală cu 12 au fost considerate active, iar cele sub acest prag au fost considerate inactive. Astfel, un semnal continuu a fost transformat într-o problemă de clasificare potrivită pentru modele clasice de machine learning.
 
-The project was designed with two main objectives. The first objective was to build and evaluate strong classical machine learning baselines for DTI prediction using handcrafted drug and protein features. The second objective was to examine how evaluation protocol affects the apparent performance of DTI models. In particular, the project focuses on the difference between standard random splits and drug-level splits, where compounds present in the training set are excluded from the test set. This distinction is important because random splits can produce overly optimistic estimates when the model is tested on compounds it has effectively already seen during training.
+Proiectul a urmărit două obiective. Primul a fost construirea unor baseline-uri solide, bazate pe feature-uri generate manual pentru compuși și proteine. Al doilea a fost compararea a două moduri de evaluare: split aleator și split la nivel de medicament. În al doilea caz, compușii din setul de antrenare nu mai apar deloc în setul de test. Diferența dintre cele două abordări contează, pentru că split-ul aleator poate da impresia unei performanțe mai bune decât cea pe care modelul ar avea-o în condiții mai apropiate de utilizarea reală.
 
-Therefore, the project is not intended only to answer whether a model can achieve good classification metrics, but also whether those metrics remain meaningful under a more realistic generalization setting. From a drug discovery perspective, the most relevant question is whether the model can prioritize active interactions for previously unseen compounds. For this reason, the study evaluates both conventional classification performance and screening-oriented behavior.
+Prin urmare, întrebarea proiectului nu a fost doar cât de bine clasifică modelul, ci și cât de relevantă rămâne această performanță atunci când trebuie să generalizeze către molecule nevăzute. Din punct de vedere aplicativ, asta este situația care interesează cel mai mult.
 
-## 2. Dataset description
+## 2. Descrierea setului de date
 
-This project uses the KIBA dataset, a widely used benchmark for drug–target interaction prediction. The processed version used here contains 118,254 drug–target pairs, with each row describing a compound structure, a protein target sequence, and an affinity-related score. The main columns retained for modeling are `compound_iso_smiles`, `target_sequence`, and `affinity`.
+Pentru acest proiect a fost folosit setul de date KIBA, unul dintre benchmark-urile cunoscute pentru predicția interacțiunilor medicament–țintă. Varianta procesată utilizată aici conține 118.254 de perechi medicament–țintă. Fiecare rând include structura compusului, secvența proteinei și un scor asociat afinității. Coloanele păstrate pentru modelare au fost compound_iso_smiles, target_sequence și affinity.
 
-The `compound_iso_smiles` column provides a text representation of the molecular structure of each compound, while `target_sequence` contains the amino acid sequence of the corresponding protein target. The `affinity` column represents the interaction strength and is used here to derive binary activity labels. To convert the problem into a binary classification task, drug–target pairs with affinity values greater than or equal to 12 were labeled as active, and pairs with lower values were labeled as inactive.
+Coloana compound_iso_smiles reprezintă structura moleculară a compusului sub formă textuală, iar target_sequence conține secvența de aminoacizi a proteinei. Coloana affinity descrie intensitatea interacțiunii și a fost folosită pentru derivarea etichetelor binare. Perechile cu valoare mai mare sau egală cu 12 au fost etichetate ca active, iar restul ca inactive.
 
-After binarization, the dataset is moderately imbalanced. Approximately 21.2% of the samples belong to the active class, while about 78.8% belong to the inactive class. This class imbalance is important because it affects the interpretation of performance metrics. In particular, metrics such as precision–recall AUC and early enrichment are more informative than accuracy alone in this setting.
+După această transformare, distribuția claselor a rămas dezechilibrată: aproximativ 21,2% dintre exemple aparțin clasei active, iar 78,8% clasei inactive. Din acest motiv, metrici precum PR-AUC sau enrichment factor sunt mai utile decât simpla acuratețe.
 
-The dataset was intentionally evaluated under two different splitting strategies. The first is a standard random split, in which samples are randomly divided into training and test sets. The second is a drug-level split, in which unique compounds are separated before assigning samples to training and test sets, ensuring that no drug appears in both partitions. This second setting is more challenging, but it better reflects the practical problem of generalizing to previously unseen compounds.
+Datele au fost evaluate în două moduri. În primul caz, exemplele au fost împărțite aleator în train și test. În al doilea caz, împărțirea s-a făcut la nivel de compus, astfel încât același medicament să nu apară în ambele subseturi. Acest al doilea scenariu este mai dificil, dar descrie mai bine situația în care modelul trebuie să facă predicții pentru molecule noi.
 
-The inclusion of both split strategies is central to the purpose of the project. Rather than treating the dataset only as a benchmark for maximizing predictive performance, the project uses it to study how evaluation design changes the apparent quality of a DTI model. This is especially relevant in cheminformatics, where random splits can hide memorization effects and produce inflated estimates of generalization.
+## 3. Ingineria caracteristicilor
 
-## 3. Feature engineering
+Pentru compuși, feature-urile au fost generate din șirurile SMILES cu ajutorul RDKit. Fiecare moleculă a fost descrisă printr-un fingerprint Morgan cu rază 2 și 1024 biți. La acești biți au fost adăugați încă cinci descriptori moleculari: masa moleculară, LogP, numărul de donori de legături de hidrogen, numărul de acceptori de legături de hidrogen și aria polară topologică. În total, fiecare compus a fost reprezentat prin 1029 caracteristici.
 
-The feature engineering pipeline was designed to generate compact and interpretable representations of both drugs and protein targets using handcrafted descriptors.
+Pentru proteine s-a folosit o reprezentare intenționat simplă. Fiecare secvență a fost codificată prin compoziția în aminoacizi, adică frecvența relativă a celor 20 de aminoacizi standard. În plus, a fost adăugată lungimea secvenței. Astfel, fiecare proteină a fost descrisă prin 21 de caracteristici.
 
-Drug features were generated from the SMILES strings with RDKit. Each compound was represented using a Morgan fingerprint with radius 2 and 1024 bits. To this fingerprint, five molecular descriptors were added: molecular weight, LogP, number of hydrogen bond donors, number of hydrogen bond acceptors, and topological polar surface area. This resulted in a 1029-dimensional drug feature vector.
+Vectorul final pentru fiecare pereche medicament–țintă a rezultat prin concatenarea caracteristicilor de pe partea de compus cu cele de pe partea de proteină. Matricea finală de intrare a avut forma (118254, 1050).
 
-Protein features were intentionally kept simple. Each target sequence was encoded using amino acid composition, which produces a 20-dimensional vector corresponding to the relative frequency of each standard amino acid. One additional feature representing sequence length was added, giving a total of 21 protein features.
+Alegerea acestui tip de reprezentare a fost deliberată. Scopul a fost construirea unor baseline-uri clasice, clare și reproductibile, fără modele profunde sau embedding-uri preantrenate.
 
-The final feature matrix was obtained by concatenating the drug and protein features for each drug–target pair. This produced an input matrix of shape `(118254, 1050)`, with the first 1029 columns corresponding to drug features and the last 21 columns corresponding to protein features.
+## 4. Abordarea de modelare
 
-This feature design supports the main purpose of the project: building transparent and reproducible classical machine learning baselines without relying on graph neural networks, transformers, or heavy pretrained embeddings.
+Au fost comparate două tipuri de modele: regresie logistică și XGBoost.
 
-## 4. Modeling approach
+Regresia logistică a fost folosită ca baseline liniar. Pentru că feature-urile provin din surse diferite și au scale numerice diferite, înainte de antrenare s-a aplicat standardizarea datelor. Dezechilibrul claselor a fost tratat prin ponderi echilibrate.
 
-The project was designed to compare simple linear modeling with a stronger nonlinear baseline under both optimistic and more realistic evaluation settings.
+XGBoost a fost ales ca baseline neliniar mai puternic. Modelul a fost antrenat cu 300 de estimatori, adâncime maximă 6, rată de învățare 0,1, subsample = 0.8 și colsample_bytree = 0.8. Ponderea clasei pozitive a fost ajustată în funcție de raportul dintre exemplele inactive și active din datele de antrenare.
 
-Two model families were used. The first was logistic regression, which served as a classical baseline. Because the combined feature matrix includes descriptors with different numerical scales, standardization was applied before training logistic regression models. Class imbalance was handled using balanced class weights.
+Ambele modele au fost evaluate în două scenarii. În split-ul aleator, datele au fost împărțite stratificat 80/20. În split-ul la nivel de medicament, compușii unici au fost separați mai întâi între train și test, iar toate perechile asociate unui anumit compus au rămas într-o singură partiție.
 
-The second model family was XGBoost, which was used as a stronger nonlinear baseline. The XGBoost models were trained with 300 estimators, maximum depth 6, learning rate 0.1, subsample 0.8, and column subsampling 0.8. To account for class imbalance, the positive class weight was adjusted using the ratio between inactive and active samples in the training data.
+Evaluarea s-a bazat în principal pe ROC-AUC și PR-AUC. În plus, au fost calculate matrici de confuzie la pragul 0,5. Pentru că proiectul are și o componentă de screening, au fost incluse și metrici bazate pe ordonarea predicțiilor, precum Precision@K, Recall@K și enrichment factor.
 
-Each model was evaluated under two splitting strategies. In the random split setting, samples were divided using a stratified 80/20 train–test split. In the drug-level split setting, unique SMILES strings were first divided into training and test groups, and all pairs associated with a given compound were kept in only one partition. This ensured that no drug appeared in both training and test data.
 
-Performance was evaluated primarily using ROC-AUC and PR-AUC. In addition, confusion matrices at a threshold of 0.5 were computed to summarize classification behavior. Because the project is motivated by virtual screening, screening-oriented metrics such as Precision@K, Recall@K, and enrichment factor were also computed later for the ranked predictions.
+## 5. Resultate
 
-## 5. Results
+Rezultatele au arătat diferențe clare atât între modele, cât și între strategiile de evaluare.
 
-The results show clear differences both between model families and between evaluation strategies.
+Pentru regresia logistică, split-ul aleator a dus la un ROC-AUC de 0,805 și un PR-AUC de 0,574. Când evaluarea s-a făcut la nivel de medicament, scorurile au scăzut la 0,659 pentru ROC-AUC și 0,358 pentru PR-AUC. Scăderea sugerează că modelul liniar se bazează destul de mult pe tipare care nu se transferă bine către compuși noi.
 
-For logistic regression, the random split produced a ROC-AUC of 0.805 and a PR-AUC of 0.574. Under the drug-level split, performance dropped to a ROC-AUC of 0.659 and a PR-AUC of 0.358. This indicates that the linear baseline is strongly affected by the removal of compound overlap between training and test data.
+XGBoost a avut rezultate mai bune în ambele scenarii. În split-ul aleator, modelul a atins un ROC-AUC de 0,908 și un PR-AUC de 0,758. În split-ul la nivel de medicament, performanța a rămas bună: 0,865 pentru ROC-AUC și 0,667 pentru PR-AUC. Asta arată că modelul neliniar reușește să capteze relații pe care regresia logistică le surprinde mai slab.
 
-XGBoost outperformed logistic regression in both settings. Under the random split, XGBoost achieved a ROC-AUC of 0.908 and a PR-AUC of 0.758. Under the drug-level split, it still retained strong performance, with a ROC-AUC of 0.865 and a PR-AUC of 0.667. These results show that nonlinear modeling captures signal that the linear baseline misses.
+În ambele cazuri, split-ul aleator a produs scoruri mai mari decât split-ul la nivel de medicament. Acest lucru sugerează că evaluarea aleatoare poate supraestima performanța reală a modelului. În schimb, split-ul la nivel de medicament oferă o imagine mai apropiată de comportamentul pe molecule nevăzute anterior.
 
-A consistent pattern across both model families is that random splitting leads to better results than drug-level splitting. This supports the idea that random splits can produce optimistic estimates in DTI prediction, because compounds seen during training may also appear in the test set. In contrast, the drug-level split provides a more realistic estimate of generalization to unseen molecules.
+Per ansamblu, XGBoost a fost modelul cu cele mai bune rezultate. Dintre toate variantele testate, cea mai relevantă pentru un scenariu realist rămâne versiunea evaluată pe split la nivel de medicament.
 
-The ROC and precision–recall comparison plots reinforce these conclusions. XGBoost produced the strongest curves overall, while the drug-level split curves were consistently lower than their random-split counterparts. Because the dataset is imbalanced, the precision–recall results are especially important and confirm that the realistic evaluation setting is substantially more challenging.
 
-Overall, the strongest raw performance was obtained with XGBoost under a random split, but the most meaningful result for practical use is the XGBoost drug-level split model, since it reflects performance on previously unseen compounds.
+## 6. Interpretarea din perspectiva screening-ului
 
-## 6. Screening interpretation
+Pentru că proiectul a fost gândit și din perspectiva virtual screening-ului, analiza nu s-a oprit la metricile globale de clasificare. A fost urmărit și felul în care modelele ordonează perechile compus–țintă, astfel încât interacțiunile active să apară cât mai sus în listă.
 
-Because the project is motivated by virtual screening, overall classification metrics were complemented with ranking-based screening metrics. These metrics evaluate whether active drug–target pairs are concentrated near the top of the ranked prediction list, which is more relevant than global performance alone in practical prioritization settings.
+Cea mai bună performanță în acest sens a fost obținută de XGBoost în scenariul cu split la nivel de medicament. Pentru acest model, Precision@5% a fost 0,866. Cu alte cuvinte, aproape 86,6% dintre predicțiile aflate în primele 5% din clasament au fost active. Enrichment factor la 5% a fost 4,12, ceea ce arată o îmbogățire clară a părții superioare a clasamentului în exemple active.
 
-The strongest realistic screening performance was obtained with XGBoost under the drug-level split. For this model, Precision@5% was 0.866, meaning that about 86.6% of the top 5% highest-ranked predictions were active. The corresponding enrichment factor at 5% was 4.12, indicating that this top-ranked subset was more than four times richer in active pairs than random selection.
+Tendința s-a păstrat și la praguri mai mari. Pentru XGBoost în split-ul la nivel de medicament, Precision@10% a fost 0,771, iar Precision@20% a fost 0,637. Valorile acestea arată că modelul reușește să aducă un număr mare de interacțiuni active în partea de sus a listei chiar și atunci când este testat pe compuși noi.
 
-At larger cutoffs, the same pattern was maintained. For XGBoost under the drug-level split, Precision@10% was 0.771 and Precision@20% was 0.637, with enrichment factors of 3.67 and 3.03, respectively. These values show that even under the more realistic unseen-drug setting, the model remains effective at concentrating actives near the top of the ranking.
+Regresia logistică a avut un comportament mai slab, mai ales în scenariul cu split la nivel de medicament, unde Precision@5% a fost 0,474, iar EF@5% a fost 2,25. Prin urmare, XGBoost a fost mai potrivit și pentru prioritizarea candidaților, nu doar pentru clasificare generală.
 
-Logistic regression showed weaker screening behavior, especially under the drug-level split, where Precision@5% was 0.474 and EF@5% was 2.25. This confirms that the nonlinear model is not only better in terms of ROC-AUC and PR-AUC, but also more useful for practical candidate prioritization.
+## 7. Importanța caracteristicilor
 
-Random split models again produced somewhat stronger screening metrics than drug-level split models, which is consistent with the earlier conclusion that random splitting inflates apparent performance. Even so, the XGBoost drug-level split model retained strong early enrichment, making it the most meaningful model for screening-oriented interpretation in this study.
+Analiza importanței caracteristicilor a fost realizată pentru modelul XGBoost antrenat și evaluat în scenariul cu split la nivel de medicament, deoarece acesta a oferit cea mai relevantă combinație între performanță și realismul evaluării.
 
-## 7. Feature importance
+Distribuția importanțelor a arătat o dependență foarte puternică de feature-urile asociate compușilor. Aproximativ 98,15% din importanța totală a fost atribuită caracteristicilor de pe partea de medicament, în timp ce doar 1,85% a revenit caracteristicilor de pe partea de proteină. Rezultatul sugerează că modelul extrage aproape tot semnalul predictiv din reprezentarea ligandului.
 
-Feature importance analysis was performed for the XGBoost model trained under the drug-level split, since this was the strongest model under the most realistic evaluation setting.
+Primele 20 de caracteristici ca importanță au provenit exclusiv din blocul de feature-uri al compușilor. Cele mai multe au fost dimensiuni din fingerprint-ul Morgan, ceea ce indică faptul că modelul s-a bazat în principal pe informație structurală de tip substructură. Printre caracteristicile din top a apărut și descriptorul pentru numărul de donori de legături de hidrogen, semn că modelul a folosit și o parte din informația fizico-chimică explicită.
 
-The importance distribution showed that the model relied overwhelmingly on drug-side features. Approximately 98.15% of total importance was assigned to drug features, while only about 1.85% was assigned to protein features. This indicates that the predictive signal captured by the model comes almost entirely from the ligand representation.
+Rezultatul arată că reprezentarea compușilor este suficient de puternică pentru a susține predicții utile într-un cadru clasic de machine learning. În același timp, sugerează și o limitare clară a pipeline-ului: reprezentarea proteinelor este prea simplă pentru a contribui substanțial. O compoziție globală în aminoacizi și lungimea secvenței oferă doar o descriere foarte generală și nu surprind motive locale, domenii sau context structural.
 
-The top 20 individual features were all located in the drug feature block. Most of these corresponded to Morgan fingerprint dimensions, showing that substructure-based chemical information was the main driver of the predictions. One interpretable molecular descriptor, hydrogen bond donors, also appeared among the top-ranked features, suggesting that the model used not only fingerprint patterns but also a small amount of explicit physicochemical information.
 
-This result is informative for two reasons. First, it confirms that the handcrafted drug representation is strong enough to support useful DTI prediction in a classical ML setting. Second, it highlights an important limitation of the current feature design: the protein representation is likely too simple to contribute much additional information. Because the target was encoded only through amino acid composition and sequence length, the model had limited access to higher-order protein characteristics such as motifs, domains, or structural context.
+## 8. Limitări și direcții viitoare
 
-Overall, the feature importance analysis suggests that the current pipeline behaves more like a ligand-driven interaction model than a balanced drug–target model. This does not invalidate the results, but it does define an important direction for future improvement.
+Proiectul are câteva limite clare. Prima ține de reprezentarea proteinelor. Folosirea compoziției în aminoacizi și a lungimii secvenței oferă o descriere destul de grosieră și lasă în afara modelului informații legate de ordine locală, motive funcționale, organizare structurală sau regiuni de legare.
 
-## 8. Limitations and future work
+A doua limită este dată de tipul de reprezentări folosite. Modelele au fost antrenate pe descriptori definiți manual, nu pe reprezentări învățate. Alegerea a fost intenționată, pentru că proiectul și-a propus baseline-uri clasice și ușor de interpretat. Totuși, această alegere reduce cantitatea de informație structurală și secvențială pe care modelul o poate exploata.
 
-This project has several important limitations. The first is the simplicity of the protein representation. Protein targets were encoded only through amino acid composition and sequence length, which provides a coarse description of the sequence but does not capture local motifs, residue order, structural organization, or binding-site information. This limitation is also reflected in the feature importance analysis, where protein features contributed very little compared with drug-side features.
+O altă limită ține de evaluare. Analiza s-a concentrat pe generalizarea către compuși nevăzuți, dar nu a inclus scenarii și mai dificile, cum ar fi generalizarea către ținte nevăzute sau split-uri complet cold-start, unde nici compusul, nici ținta nu apar în antrenare.
 
-A second limitation is that the models were trained on handcrafted descriptors rather than richer learned representations. This was an intentional design choice, since the purpose of the project was to establish strong classical baselines, but it also means that some potentially useful structural and sequence information was not exploited. In future work, the pipeline could be extended with more expressive protein encodings, improved molecular descriptors, or learned embeddings, while still keeping the classical baseline results as a reference point.
-
-Another limitation is that the evaluation focused mainly on unseen-drug generalization, but not on other challenging settings such as unseen-target or fully cold-start drug–target splits. These settings would provide an even stricter test of generalization and would be useful for understanding how robust the models are across different deployment scenarios.
-
-Despite these limitations, the project successfully demonstrates the main methodological point: evaluation strategy strongly affects the apparent quality of DTI models. Random splits produce inflated estimates, while drug-level splits provide a more realistic view of generalization. Future work should therefore focus not only on improving model architecture, but also on adopting evaluation settings that better match real screening conditions.
+Chiar și cu aceste limite, proiectul evidențiază clar un lucru: modul în care este făcută evaluarea schimbă substanțial imaginea asupra performanței. Split-urile aleatoare tind să dea rezultate mai bune pe hârtie, în timp ce split-urile la nivel de medicament oferă o estimare mai apropiată de situațiile practice. În continuare, o direcție firească ar fi îmbunătățirea reprezentării proteinelor și extinderea evaluării către scenarii de generalizare mai stricte.
