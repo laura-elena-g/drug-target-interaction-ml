@@ -8,6 +8,9 @@ Acest proiect abordează problema predicției interacțiunilor dintre medicament
 - Dimensiune: 118254 exemple, 1050 features finale
 - Ce conține: pentru fiecare pereche drug–target, datasetul conține `compound_iso_smiles`, `target_sequence` și `affinity`; eticheta binară a fost definită astfel: activ dacă `affinity >= 12`, inactiv altfel
 
+## Preprocesarea inițială a datelor
+Fișierul `kiba_all.csv` a fost verificat înainte de construirea pipeline-ului, iar pentru acest proiect nu a fost necesar un pas separat de curățare tabulară. Datele relevante erau deja într-un format utilizabil, astfel încât pipeline-ul pornește direct de la `kiba_all.csv`, urmat de generarea feature-urilor pentru compuși și proteine.
+
 ## Ce am făcut
 1. Am explorat datele și am analizat distribuția claselor
 2. Am pregătit datele și am construit features pentru compuși și proteine
@@ -29,14 +32,25 @@ Prin acest proiect am înțeles mai bine cât de mult poate influența strategia
 **Modelul final:** XGBoost evaluat cu drug-level split, cu ROC-AUC de 0.865 și PR-AUC de 0.667
 
 ## Cum să rulați
+
+# Creează folderele pentru date
+mkdir -p data/raw data/processed
+
+# Pune fișierul CSV în data/raw/
+
 ```bash
 pip install -r requirements.txt
 
+#preprocesare
+python src/data/build_drug_features.py
+python src/data/build_protein_features.py
+
+#antrenare și evaluare modele
 python src/models/train_baseline.py
 python src/models/train_drug_split.py
 python src/models/train_xgb_random_split.py
 python src/models/train_xgb_drug_split.py
-
+#comparații și analize finale
 python src/models/plot_model_comparison.py
 python src/models/summarize_metrics.py
 python src/models/screening_metrics.py
