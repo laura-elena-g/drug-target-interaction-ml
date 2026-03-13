@@ -1,13 +1,25 @@
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Jupyter / OS
 .ipynb_checkpoints/
 .DS_Store
 
+# Environments
 .venv/
 venv/
 env/
 
+# VS Code
+.vscode/
+
+# Large raw / processed data
+data/raw/
+data/processed/
+
+# Trained models / large artifacts
 reports/models/
 *.pkl
-
-.vscode/
+*.npy
