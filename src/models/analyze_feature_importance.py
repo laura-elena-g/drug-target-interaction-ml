@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 def main():
     root = Path(__file__).resolve().parents[2]
     model_path = root / "reports" / "models" / "xgboost_drug_split_model.pkl"
+
     reports_dir = root / "reports"
     figures_dir = reports_dir / "figures"
     tables_dir = reports_dir / "tables"
@@ -27,8 +28,8 @@ def main():
 
     df["feature_group"] = np.where(df["feature_idx"] < 1029, "Drug", "Protein")
 
-    group_summary.to_csv(tables_dir / "feature_group_importance.csv", index=False)
-    top20.to_csv(tables_dir / "top20_feature_importance.csv", index=False)
+    group_summary = df.groupby("feature_group", as_index=False)["importance"].sum()
+    top20 = df.sort_values("importance", ascending=False).head(20)
 
     print("\n=== Importance by feature group ===")
     print(group_summary)
@@ -36,8 +37,8 @@ def main():
     print("\n=== Top 20 features ===")
     print(top20)
 
-    group_summary.to_csv(reports_dir / "feature_group_importance.csv", index=False)
-    top20.to_csv(reports_dir / "top20_feature_importance.csv", index=False)
+    group_summary.to_csv(tables_dir / "feature_group_importance.csv", index=False)
+    top20.to_csv(tables_dir / "top20_feature_importance.csv", index=False)
 
     plt.figure(figsize=(6, 5))
     plt.bar(group_summary["feature_group"], group_summary["importance"])
