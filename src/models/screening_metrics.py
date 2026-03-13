@@ -67,7 +67,10 @@ def main():
     results = pd.DataFrame(rows)
     print(results)
 
-    out_path = root / "reports" / "screening_metrics.csv"
+    tables_dir = root / "reports" / "tables"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    out_path = tables_dir / "screening_metrics.csv"
+
     results.to_csv(out_path, index=False)
     print("Saved:", out_path)
 

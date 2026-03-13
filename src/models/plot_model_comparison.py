@@ -9,6 +9,8 @@ def main():
     root = Path(__file__).resolve().parents[2]
     metrics_dir = root / "reports" / "metrics"
     reports_dir = root / "reports"
+    figures_dir = reports_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
 
     model_files = {
         "Logistic Random Split": metrics_dir / "logistic_random_split_predictions.csv",
@@ -36,7 +38,7 @@ def main():
     plt.title("ROC Curve Comparison")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(reports_dir / "roc_comparison.png", dpi=300)
+    plt.savefig(figures_dir / "roc_comparison.png", dpi=300)
     plt.close()
 
     # --- Precision-Recall curve plot ---
@@ -57,11 +59,11 @@ def main():
     plt.title("Precision-Recall Curve Comparison")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(reports_dir / "pr_comparison.png", dpi=300)
+    plt.savefig(figures_dir / "pr_comparison.png", dpi=300)
     plt.close()
 
-    print("Saved:", reports_dir / "roc_comparison.png")
-    print("Saved:", reports_dir / "pr_comparison.png")
+    print("Saved:", figures_dir / "roc_comparison.png")
+    print("Saved:", figures_dir / "pr_comparison.png")
 
 
 if __name__ == "__main__":

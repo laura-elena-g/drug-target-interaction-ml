@@ -9,6 +9,11 @@ def main():
     root = Path(__file__).resolve().parents[2]
     model_path = root / "reports" / "models" / "xgboost_drug_split_model.pkl"
     reports_dir = root / "reports"
+    figures_dir = reports_dir / "figures"
+    tables_dir = reports_dir / "tables"
+
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir.mkdir(parents=True, exist_ok=True)
 
     model = joblib.load(model_path)
 
@@ -22,8 +27,8 @@ def main():
 
     df["feature_group"] = np.where(df["feature_idx"] < 1029, "Drug", "Protein")
 
-    group_summary = df.groupby("feature_group", as_index=False)["importance"].sum()
-    top20 = df.sort_values("importance", ascending=False).head(20)
+    group_summary.to_csv(tables_dir / "feature_group_importance.csv", index=False)
+    top20.to_csv(tables_dir / "top20_feature_importance.csv", index=False)
 
     print("\n=== Importance by feature group ===")
     print(group_summary)
@@ -39,7 +44,7 @@ def main():
     plt.ylabel("Total Importance")
     plt.title("Feature Importance by Group")
     plt.tight_layout()
-    plt.savefig(reports_dir / "feature_group_importance.png", dpi=300)
+    plt.savefig(figures_dir / "feature_group_importance.png", dpi=300)
     plt.close()
 
     plt.figure(figsize=(8, 6))
@@ -49,13 +54,13 @@ def main():
     plt.ylabel("Feature Index")
     plt.title("Top 20 XGBoost Features")
     plt.tight_layout()
-    plt.savefig(reports_dir / "top20_feature_importance.png", dpi=300)
+    plt.savefig(figures_dir / "top20_feature_importance.png", dpi=300)
     plt.close()
 
-    print("Saved:", reports_dir / "feature_group_importance.csv")
-    print("Saved:", reports_dir / "top20_feature_importance.csv")
-    print("Saved:", reports_dir / "feature_group_importance.png")
-    print("Saved:", reports_dir / "top20_feature_importance.png")
+    print("Saved:", tables_dir / "feature_group_importance.csv")
+    print("Saved:", tables_dir / "top20_feature_importance.csv")
+    print("Saved:", figures_dir / "feature_group_importance.png")
+    print("Saved:", figures_dir / "top20_feature_importance.png")
 
 
 if __name__ == "__main__":
